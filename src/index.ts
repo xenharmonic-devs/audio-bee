@@ -11,6 +11,7 @@ export type AudioBeeOptions = {
   loopStartT: number;
   loopEndT: number;
   reportProgress: (value: number) => void;
+  locals: EvaluationContext;
 };
 
 export class BufferSourceFactory {
@@ -75,7 +76,7 @@ export function evalSource(
       const n = dummy.map((_, i) => i);
       const t = n.map(i => i * T);
 
-      const context: EvaluationContext = new Map();
+      const context: EvaluationContext = new Map(options.locals);
       context.set('N', N);
       context.set('T', T);
       context.set('n', n);

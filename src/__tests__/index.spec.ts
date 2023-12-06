@@ -52,49 +52,45 @@ class MockAudioBuffer implements AudioBuffer {
 
 vi.stubGlobal('AudioBuffer', MockAudioBuffer);
 
+function basicOptions(): AudioBeeOptions {
+  const reportProgress = vi.fn();
+  return {
+    sampleRate: 1000,
+    length: 2000, // Two 'seconds'
+    quantizePeriod: false,
+    quantizeLoopEnd: false,
+    frequencies: [100],
+    velocities: [0.5],
+    numberOfChannels: 1,
+    loopStartT: 0,
+    loopEndT: 0,
+    reportProgress,
+    locals: new Map(),
+  };
+}
+
 describe('Audio Buffer Expression Evaluator', () => {
   it('evaluates source code producing audio buffers (single)', async () => {
-    const reportProgress = vi.fn();
-    const options: AudioBeeOptions = {
-      sampleRate: 1000,
-      length: 2000, // Two 'seconds'
-      quantizePeriod: false,
-      quantizeLoopEnd: false,
-      frequencies: [100],
-      velocities: [0.5],
-      numberOfChannels: 1,
-      loopStartT: 0,
-      loopEndT: 0,
-      reportProgress,
-    };
+    const options = basicOptions();
     const source = 'v * sin(TAU * f * t) * exp(-5 * t)';
     const factories = await evalSource(source, options);
     expect(factories).toHaveLength(1);
-    expect(factories[0].buffer.numberOfChannels).toBe(1);
-    const data = factories[0].buffer.getChannelData(0);
+    const factory = factories[0];
+    expect(factory.velocity).toBe(0.5);
+    expect(factory.frequency).toBe(100);
+    expect(factory.buffer.numberOfChannels).toBe(1);
+    const data = factory.buffer.getChannelData(0);
     for (let i = 0; i < 2000; ++i) {
       const t = i / 1000;
       const value = 0.5 * Math.sin(2 * Math.PI * 100 * t) * Math.exp(-5 * t);
       expect(data[i]).toBeCloseTo(value);
     }
-    expect(reportProgress).toBeCalledWith(0);
-    expect(reportProgress).toBeCalledWith(1);
+    expect(options.reportProgress).toBeCalledWith(0);
+    expect(options.reportProgress).toBeCalledWith(1);
   });
 
   it('handles errors gracefully', () => {
-    const reportProgress = vi.fn();
-    const options: AudioBeeOptions = {
-      sampleRate: 1000,
-      length: 2000, // Two 'seconds'
-      quantizePeriod: false,
-      quantizeLoopEnd: false,
-      frequencies: [100],
-      velocities: [0.5],
-      numberOfChannels: 1,
-      loopStartT: 0,
-      loopEndT: 0,
-      reportProgress,
-    };
+    const options = basicOptions();
     const source = 'v * sin(TAU * f * t * exp(-5 * t)';
     const resolve = vi.fn();
     const reject = vi.fn();
@@ -106,5 +102,21 @@ describe('Audio Buffer Expression Evaluator', () => {
         expect(resolve).not.toBeCalled();
         expect(reject).toBeCalled();
       });
+  });
+
+  it('support provision of external parameters', async () => {
+    const options = basicOptions();
+    options.locals.set('index', 5);
+    const source = 'v * sin(TAU * f * t + sin(TAU * f * index * t))';
+    const factories = await evalSource(source, options);
+    expect(factories).toHaveLength(1);
+    const factory = factories[0];
+    const data = factory.buffer.getChannelData(0);
+    for (let i = 0; i < 2000; ++i) {
+      const t = i / 1000;
+      const value =
+        0.5 * Math.sin(2 * Math.PI * 100 * t + Math.sin(2 * Math.PI * 500 * t));
+      expect(data[i]).toBeCloseTo(value);
+    }
   });
 });
