@@ -80,4 +80,31 @@ describe('Audio Buffer Expression Evaluator', () => {
     expect(reportProgress).toBeCalledWith(0);
     expect(reportProgress).toBeCalledWith(1);
   });
+
+  it('handles errors gracefully', () => {
+    const reportProgress = vi.fn();
+    const options: AudioBeeOptions = {
+      sampleRate: 1000,
+      length: 2000, // Two 'seconds'
+      quantizePeriod: false,
+      quantizeLoopEnd: false,
+      frequencies: [100],
+      velocities: [0.5],
+      numberOfChannels: 1,
+      loopStartT: 0,
+      loopEndT: 0,
+      reportProgress,
+    };
+    const source = 'v * sin(TAU * f * t * exp(-5 * t)';
+    const resolve = vi.fn();
+    const reject = vi.fn();
+    const promise = evalSource(source, options);
+    promise
+      .then(resolve)
+      .catch(reject)
+      .then(() => {
+        expect(resolve).not.toBeCalled();
+        expect(reject).toBeCalled();
+      });
+  });
 });

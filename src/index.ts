@@ -60,89 +60,97 @@ export function evalSource(
   source: string,
   options: AudioBeeOptions
 ): Promise<BufferSourceFactory[]> {
-  return new Promise(resolve => {
-    // Dummy output to calculate ambient context
-    const dummy = new Float64Array(options.length);
+  return new Promise((resolve, reject) => {
+    try {
+      // Dummy output to calculate ambient context
+      const dummy = new Float64Array(options.length);
 
-    const sampleRate = options.sampleRate;
+      const sampleRate = options.sampleRate;
 
-    // TODO: Library functions.
+      // TODO: Library functions.
 
-    // Ambient context
-    const N = dummy.length;
-    const T = 1 / sampleRate;
-    const n = dummy.map((_, i) => i);
-    const t = n.map(i => i * T);
+      // Ambient context
+      const N = dummy.length;
+      const T = 1 / sampleRate;
+      const n = dummy.map((_, i) => i);
+      const t = n.map(i => i * T);
 
-    const context: EvaluationContext = new Map();
-    context.set('N', N);
-    context.set('T', T);
-    context.set('n', n);
-    context.set('t', t);
+      const context: EvaluationContext = new Map();
+      context.set('N', N);
+      context.set('T', T);
+      context.set('n', n);
+      context.set('t', t);
 
-    const totalWork =
-      options.velocities.length *
-      options.frequencies.length *
-      options.numberOfChannels;
-    let done = 0;
-    options.reportProgress(done / totalWork);
+      const totalWork =
+        options.velocities.length *
+        options.frequencies.length *
+        options.numberOfChannels;
+      let done = 0;
+      options.reportProgress(done / totalWork);
 
-    const result: BufferSourceFactory[] = [];
+      const result: BufferSourceFactory[] = [];
 
-    for (const velocity of options.velocities) {
-      context.set('v', velocity);
-      for (const frequency of options.frequencies) {
-        let f = frequency;
-        if (options.quantizePeriod) {
-          f = roundFrequency(f, sampleRate);
-        }
-        context.set('f', f);
+      for (const velocity of options.velocities) {
+        context.set('v', velocity);
+        for (const frequency of options.frequencies) {
+          let f = frequency;
+          if (options.quantizePeriod) {
+            f = roundFrequency(f, sampleRate);
+          }
+          context.set('f', f);
 
-        // Computed config
-        const loopStart = Math.round(sampleRate * options.loopStartT);
-        let loopEnd = Math.round(sampleRate * options.loopEndT);
-        if (options.quantizeLoopEnd) {
-          const loopDurationT = quantizeLoopDuration(
-            (loopEnd - loopStart) * T,
-            f
+          // Computed config
+          const loopStart = Math.round(sampleRate * options.loopStartT);
+          let loopEnd = Math.round(sampleRate * options.loopEndT);
+          if (options.quantizeLoopEnd) {
+            const loopDurationT = quantizeLoopDuration(
+              (loopEnd - loopStart) * T,
+              f
+            );
+            loopEnd = Math.round(loopStart + loopDurationT * sampleRate);
+          }
+          context.set('loopStart', loopStart);
+          context.set('loopEnd', loopEnd);
+
+          // Buffer content will be calculated asynchronously.
+          const buffer = new AudioBuffer({
+            numberOfChannels: options.numberOfChannels,
+            length: N,
+            sampleRate,
+          });
+          result.push(
+            new BufferSourceFactory(
+              buffer,
+              velocity,
+              f,
+              loopStart * T,
+              loopEnd * T
+            )
           );
-          loopEnd = Math.round(loopStart + loopDurationT * sampleRate);
-        }
-        context.set('loopStart', loopStart);
-        context.set('loopEnd', loopEnd);
 
-        // Buffer content will be calculated asynchronously.
-        const buffer = new AudioBuffer({
-          numberOfChannels: options.numberOfChannels,
-          length: N,
-          sampleRate,
-        });
-        result.push(
-          new BufferSourceFactory(
-            buffer,
-            velocity,
-            f,
-            loopStart * T,
-            loopEnd * T
-          )
-        );
-
-        for (let i = 0; i < options.numberOfChannels; ++i) {
-          const c = i;
-          const channelContext = new Map(context);
-          channelContext.set('c', c);
-          setTimeout(() => {
-            const output = new Float64Array(N);
-            evalIncremental(source, output, channelContext);
-            buffer.getChannelData(c).set(output);
-            done++;
-            options.reportProgress(done / totalWork);
-            if (done === totalWork) {
-              resolve(result);
-            }
-          }, 0);
+          for (let i = 0; i < options.numberOfChannels; ++i) {
+            const c = i;
+            const channelContext = new Map(context);
+            channelContext.set('c', c);
+            setTimeout(() => {
+              try {
+                const output = new Float64Array(N);
+                evalIncremental(source, output, channelContext);
+                buffer.getChannelData(c).set(output);
+                done++;
+                options.reportProgress(done / totalWork);
+                if (done === totalWork) {
+                  resolve(result);
+                }
+              } catch (e) {
+                reject(e);
+              }
+            }, 0);
+          }
         }
       }
+    } catch (e) {
+      reject(e);
     }
   });
 }
