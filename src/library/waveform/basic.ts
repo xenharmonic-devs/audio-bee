@@ -23,3 +23,8 @@ export function triangle(phase: number) {
 export function square(phase: number) {
   return Number(phase - Math.floor(phase) < 0.5) * 2 - 1;
 }
+
+export function cub(phase: number) {
+  const x = phase - Math.floor(phase + 0.5);
+  return x * (5.196152422706631 - 20.78460969082652 * x * x);
+}
