@@ -1,4 +1,21 @@
-import {cosine, sawtooth, semisine, sine, square, triangle} from './waveform';
+import {
+  cosine,
+  sawtooth,
+  semisine,
+  sine,
+  square,
+  triangle,
+  softSemisine,
+  softSawtooth,
+  softTriangle,
+  softSquare,
+  softSinh,
+  softCosh,
+  softTanh,
+  softLog,
+  softPulse,
+  softTent,
+} from './waveform';
 
 export * from './waveform';
 
@@ -35,4 +52,14 @@ export const LIBRARY_FUNCTIONS: Record<string, Function> = {
   sawtooth,
   triangle,
   square,
+  softSemisine,
+  softSawtooth,
+  softTriangle,
+  softSquare,
+  softSinh,
+  softCosh,
+  softTanh,
+  softLog,
+  softPulse,
+  softTent,
 };

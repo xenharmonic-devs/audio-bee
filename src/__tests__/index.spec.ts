@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {describe, it, expect, vi} from 'vitest';
-import {type AudioBeeOptions, evalSource} from '..';
+import {type AudioBeeOptions, evalSource, sawtooth, sine} from '..';
 
 class MockAudioBuffer implements AudioBuffer {
   options: AudioBufferOptions;
@@ -130,6 +130,26 @@ describe('Audio Buffer Expression Evaluator', () => {
       const t = i / 1000;
       const value = ((2 * t + 1) % 2) - 1;
       expect(data[i]).toBeCloseTo(value);
+    }
+  });
+
+  it('has parametrized soft versions of basic waveforms', async () => {
+    const options = basicOptions();
+    const source = 'softSawtooth(10*t, 0.5*t)';
+    const data = (await evalSource(source, options))[0].buffer.getChannelData(
+      0
+    );
+    for (let i = 0; i < 2000; ++i) {
+      const t = i / 1000;
+      const sin = sine(10 * t);
+      const saw = sawtooth(10 * t);
+      if (i <= 30) {
+        expect(data[i]).toBeCloseTo(sin);
+      } else if (i <= 211) {
+        expect(data[i]).toBeCloseTo(sin, 1);
+      } else if (i > 1975) {
+        expect(data[i]).toBeCloseTo(saw, 1);
+      }
     }
   });
 });
