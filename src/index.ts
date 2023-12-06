@@ -1,3 +1,6 @@
+export * from './library';
+import {LIBRARY_FUNCTIONS} from './library';
+
 import {EvaluationContext, evalIncremental} from 'eval-math';
 
 export type AudioBeeOptions = {
@@ -68,8 +71,6 @@ export function evalSource(
 
       const sampleRate = options.sampleRate;
 
-      // TODO: Library functions.
-
       // Ambient context
       const N = dummy.length;
       const T = 1 / sampleRate;
@@ -81,6 +82,10 @@ export function evalSource(
       context.set('T', T);
       context.set('n', n);
       context.set('t', t);
+
+      for (const name in LIBRARY_FUNCTIONS) {
+        context.set(name, LIBRARY_FUNCTIONS[name]);
+      }
 
       const totalWork =
         options.velocities.length *

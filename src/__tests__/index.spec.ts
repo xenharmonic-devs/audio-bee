@@ -119,4 +119,17 @@ describe('Audio Buffer Expression Evaluator', () => {
       expect(data[i]).toBeCloseTo(value);
     }
   });
+
+  it('has a library of functions', async () => {
+    const options = basicOptions();
+    const source = 'sawtooth(t)';
+    const data = (await evalSource(source, options))[0].buffer.getChannelData(
+      0
+    );
+    for (let i = 0; i < 2000; ++i) {
+      const t = i / 1000;
+      const value = ((2 * t + 1) % 2) - 1;
+      expect(data[i]).toBeCloseTo(value);
+    }
+  });
 });
