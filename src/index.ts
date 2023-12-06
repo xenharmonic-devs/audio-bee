@@ -141,6 +141,15 @@ export function evalSource(
             setTimeout(() => {
               try {
                 const output = new Float64Array(N);
+                // eslint-disable-next-line no-inner-declarations
+                function wave(index: number) {
+                  index = Math.round(index);
+                  if (index < 0 || index >= N) {
+                    return 0;
+                  }
+                  return output[index];
+                }
+                channelContext.set('wave', wave);
                 evalIncremental(source, output, channelContext);
                 buffer.getChannelData(c).set(output);
                 done++;

@@ -152,4 +152,15 @@ describe('Audio Buffer Expression Evaluator', () => {
       }
     }
   });
+
+  it('supports back-referencing generated samples for IIR filter design', async () => {
+    const options = basicOptions();
+    const source = '(n == 0) + wave(n-1) * 0.999';
+    const data = (await evalSource(source, options))[0].buffer.getChannelData(
+      0
+    );
+    for (let i = 0; i < 2000; ++i) {
+      expect(data[i]).toBeCloseTo(0.999 ** i);
+    }
+  });
 });
