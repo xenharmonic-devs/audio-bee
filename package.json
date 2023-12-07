@@ -1,6 +1,6 @@
 {
   "name": "audio-bee",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Audio Buffer Expression Evaluator",
   "funding": {
     "type": "github",
