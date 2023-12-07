@@ -38,7 +38,7 @@ export class BufferSourceFactory {
     this.loopEndT = loopEndT;
   }
 
-  makeBufferSource(context: AudioContext, frequency: number) {
+  makeBufferSource(context: BaseAudioContext, frequency: number) {
     const node = new AudioBufferSourceNode(context, {
       playbackRate: frequency / this.frequency,
     });
